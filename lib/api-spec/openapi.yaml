@@ -1,0 +1,272 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: AI PPT Generator API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: presentations
+    description: Presentation operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /presentations:
+    get:
+      operationId: listPresentations
+      tags: [presentations]
+      summary: List all presentations
+      description: Returns all generated presentations
+      responses:
+        "200":
+          description: List of presentations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Presentation"
+
+    post:
+      operationId: generatePresentation
+      tags: [presentations]
+      summary: Generate a new PPT presentation
+      description: Uses AI to generate a complete presentation for the given topic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PresentationInput"
+      responses:
+        "201":
+          description: Presentation generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Presentation"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /presentations/{id}:
+    get:
+      operationId: getPresentation
+      tags: [presentations]
+      summary: Get a presentation by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Presentation details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Presentation"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+    delete:
+      operationId: deletePresentation
+      tags: [presentations]
+      summary: Delete a presentation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /presentations/{id}/download:
+    get:
+      operationId: downloadPresentation
+      tags: [presentations]
+      summary: Download the PPTX file for a presentation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: PPTX file
+          content:
+            application/vnd.openxmlformats-officedocument.presentationml.presentation:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not found
+
+  /presentations/stats:
+    get:
+      operationId: getPresentationStats
+      tags: [presentations]
+      summary: Get summary stats for all presentations
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresentationStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+
+    SlideItem:
+      type: object
+      properties:
+        heading:
+          type: string
+        explanation:
+          type: string
+      required:
+        - heading
+        - explanation
+
+    PresentationContent:
+      type: object
+      properties:
+        title:
+          type: string
+        introduction:
+          type: array
+          items:
+            type: string
+        mainConcept:
+          type: array
+          items:
+            type: string
+        technicalExplanation:
+          type: array
+          items:
+            type: string
+        advantages:
+          type: array
+          items:
+            $ref: "#/components/schemas/SlideItem"
+        disadvantages:
+          type: array
+          items:
+            $ref: "#/components/schemas/SlideItem"
+        limitations:
+          type: array
+          items:
+            $ref: "#/components/schemas/SlideItem"
+        conclusion:
+          type: array
+          items:
+            type: string
+      required:
+        - title
+        - introduction
+        - mainConcept
+        - technicalExplanation
+        - advantages
+        - disadvantages
+        - limitations
+        - conclusion
+
+    Presentation:
+      type: object
+      properties:
+        id:
+          type: string
+        topic:
+          type: string
+        content:
+          $ref: "#/components/schemas/PresentationContent"
+        generationTimeSeconds:
+          type: number
+        createdAt:
+          type: string
+        pptxPath:
+          type: ["string", "null"]
+      required:
+        - id
+        - topic
+        - content
+        - generationTimeSeconds
+        - createdAt
+
+    PresentationInput:
+      type: object
+      properties:
+        topic:
+          type: string
+          minLength: 1
+      required:
+        - topic
+
+    PresentationStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        avgGenerationSeconds:
+          type: number
+        mostRecentTopic:
+          type: ["string", "null"]
+      required:
+        - total
+        - avgGenerationSeconds
+        - mostRecentTopic
